@@ -12,12 +12,10 @@
 
 import type {Usuario, Rol} from './models/interfaces';
 
-
-export function devuelveAlumno(usuariosDelCentro: Usuario[], id: number) : Usuario | undefined {
-  return usuariosDelCentro.find(usuario => usuario.id === id && usuario.rol === 'alumno');
+export function filtrarUsuariosPorRol(usuarios: Usuario[], rol: Rol, activo: boolean): Usuario[] {
+    return usuarios.filter(usuario => usuario.rol === rol && usuario.activo === activo);
 }
 
-
-export function filtrarUsuarioPorRol(usuarios: Usuario[], rol: Rol, activo: boolean): Usuario[] {
-   return usuarios.filter(usuario => usuario.rol == rol && usuario.activo == activo);
- }
+export function devuelveAlumno(usuariosDelCentro: Usuario[], id: number): Usuario | undefined {
+  return usuariosDelCentro.find(usuario => usuario.id === id && usuario.rol === 'alumno');
+} 
