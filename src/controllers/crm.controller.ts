@@ -1,61 +1,154 @@
-import type { Usuario , Rol } from "../models/interfaces";
+import type {
+    Asistencia,
+    Sancion,
+    RegistroHorario,
+    EstadoAsistencia,
+    TipoSancion,
+    DiaSemana,
+    FranjaHoraria
+} from '../models/interfaces';
+
+import { StorageService } from '../services/storage.service';
 
 export class CRMController {
 
-    //Propiedades
-    private usuariosDelCentro: Usuario[] = [];
-    // como no podemos hecer const por el private, lo hacemos read only
-    private readonly CLAVE_STORAGE = 'school_crm_usuarios';
+    private readonly asistenciaStorage =
+        new StorageService<Asistencia>('crm_asistencias');
 
+    private readonly sancionesStorage =
+        new StorageService<Sancion>('crm_sanciones');
 
-    //Constructor
-    constructor(public version: string) {
-        const datosLocales = localStorage.getItem(this.CLAVE_STORAGE);
-        if (datosLocales){
-            this.usuariosDelCentro = JSON.parse(datosLocales);
-        } else{
-            this.usuariosDelCentro = [
-            { id: 1, nombre: 'Ana Martínez', rol: 'profesor', activo: true },
-            { id: 2, nombre: 'Carlos Soler', rol: 'alumno', activo: true },
-            { id: 3, nombre: 'Lucía Gómez', rol: 'admin', activo: true },
-            { id: 4, nombre: 'Ana Martínez', rol: 'profesor', activo: false },
-            { id: 5, nombre: 'Carlos Soler', rol: 'alumno', activo: true },
-            { id: 6, nombre: 'Lucía Gómez', rol: 'alumno', activo: false }
-        ];
-        }
-        
+    private readonly horariosStorage =
+        new StorageService<RegistroHorario>('crm_horarios');
+
+    /**
+     * Simula una petición de red.
+     */
+    private simularRed(): Promise<void> {
+        return new Promise((resolve) => {
+            setTimeout(resolve, 500);
+        });
     }
 
+    /**
+     * Registra una asistencia.
+     */
+    public async registrarAsistencia(
+        alumnoId: string,
+        profesorId: string,
+        franja: FranjaHoraria,
+        estado: EstadoAsistencia
+    ): Promise<boolean> {
 
-    //Métodos: Es la funcion de ayer, que estaba en counter, convertida en un método o habilidad de la clase
-     filtrarUsuarioPorRol( rolBuscado: Rol): Usuario[] {
-        //Usamos this para referirnos a la propiedad usuariosDesCentro de esta misma clase
-       return this.usuariosDelCentro.filter(usuario => usuario.rol === rolBuscado);
-     }
+        await this.simularRed();
 
-     actualizarVersion(nuevaVersion: string): void{
-        this.version = nuevaVersion;
-     }
+        const asistencia: Asistencia = {
+            id: crypto.randomUUID(),
+            alumnoId,
+            profesorId,
+            fecha: new Date()
+                .toISOString()
+                .split('T')[0],
+            franja,
+            estado
+        };
 
-     verVersion(): string{
-        return this.version;
-     }
+        this.asistenciaStorage.add(asistencia);
 
-    public agregarUsuario(nuevoUsuario: Usuario): void{
-        const idDuplicado = this.usuariosDelCentro.find(usuario => usuario.id === nuevoUsuario.id);
-        if(idDuplicado){
-            console.log("Este usuario ya existe");
-        this.guradarEnDisco();
-        }
-        else{
-            this.usuariosDelCentro.push(nuevoUsuario);
-            console.log("Este usuario ha sido agregado");
-        }
-        
-     }
+        return true;
+    }
 
+    /**
+     * Registra una sanción.
+     */
+    public async registrarSancion(
+        alumnoId: string,
+        profesorId: string,
+        tipo: TipoSancion,
+        descripcion: string
+    ): Promise<void> {
 
-     private guradarEnDisco(): void{
-        localStorage.setItem(this.CLAVE_STORAGE, JSON.stringify(this.usuariosDelCentro)); 
-     }
+        await this.simularRed();
+
+        const sancion: Sancion = {
+            id: crypto.randomUUID(),
+            alumnoId,
+            profesorId,
+            fecha: new Date()
+                .toISOString()
+                .split('T')[0],
+            tipo,
+            descripcion
+        };
+
+        this.sancionesStorage.add(sancion);
+    }
+
+    /**
+     * Comprueba si un profesor tiene conflicto horario.
+     */
+    public async comprobarConflictoProfesor(
+        profesorId: string,
+        dia: DiaSemana,
+        franja: FranjaHoraria
+    ): Promise<boolean> {
+
+        await this.simularRed();
+
+        const horarios: RegistroHorario[] =
+            this.horariosStorage.getAll();
+
+        return horarios.some(
+            (horario: RegistroHorario) =>
+                horario.profesorId === profesorId &&
+                horario.dia === dia &&
+                horario.franja === franja
+        );
+    }
+
+    /**
+     * Genera el informe de un alumno.
+     */
+    public async obtenerInformeAlumno(
+        alumnoId: string
+    ): Promise<{
+        faltas: number;
+        retrasos: number;
+        sanciones: number;
+    }> {
+
+        await this.simularRed();
+
+        const asistencias: Asistencia[] =
+            this.asistenciaStorage.getAll();
+
+        const sanciones: Sancion[] =
+            this.sancionesStorage.getAll();
+
+        const faltas: number =
+            asistencias.filter(
+                (asistencia: Asistencia) =>
+                    asistencia.alumnoId === alumnoId &&
+                    asistencia.estado === 'falta'
+            ).length;
+
+        const retrasos: number =
+            asistencias.filter(
+                (asistencia: Asistencia) =>
+                    asistencia.alumnoId === alumnoId &&
+                    asistencia.estado === 'retraso'
+            ).length;
+
+        const totalSanciones: number =
+            sanciones.filter(
+                (sancion: Sancion) =>
+                    sancion.alumnoId === alumnoId
+            ).length;
+
+        return {
+            faltas,
+            retrasos,
+            sanciones: totalSanciones
+        };
+    }
 }
