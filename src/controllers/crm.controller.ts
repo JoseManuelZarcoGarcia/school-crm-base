@@ -1,44 +1,154 @@
-import type { Asistencia, Sancion, RegistroHorario, EstadoAsistencia, TipoSancion } from '../models/interfaces';
+import type {
+    Asistencia,
+    Sancion,
+    RegistroHorario,
+    EstadoAsistencia,
+    TipoSancion,
+    DiaSemana,
+    FranjaHoraria
+} from '../models/interfaces';
+
 import { StorageService } from '../services/storage.service';
 
 export class CRMController {
-    // Inicialización de los almacenes persistentes
-    private asistenciaStorage = new StorageService<Asistencia>('crm_asistencias');
-    private sancionesStorage = new StorageService<Sancion>('crm_sanciones');
-    private horariosStorage = new StorageService<RegistroHorario>('crm_horarios');
+
+    private readonly asistenciaStorage =
+        new StorageService<Asistencia>('crm_asistencias');
+
+    private readonly sancionesStorage =
+        new StorageService<Sancion>('crm_sanciones');
+
+    private readonly horariosStorage =
+        new StorageService<RegistroHorario>('crm_horarios');
 
     /**
-     * Registra una falta, retraso o asistencia en el sistema de forma asíncrona.
+     * Simula una petición de red.
      */
-    public async registrarAsistencia(alumnoId: string, profesorId: string, franja: string, estado: EstadoAsistencia): Promise<boolean> {
-        // TODO: El alumno debe implementar la simulación de retraso de red (setTimeout con Promise)
-        // y añadir el registro usando el servicio de almacenamiento.
-        throw new Error('Método no implementado');
+    private simularRed(): Promise<void> {
+        return new Promise((resolve) => {
+            setTimeout(resolve, 500);
+        });
     }
 
     /**
-     * Registra una sanción disciplinaria.
+     * Registra una asistencia.
      */
-    public async registrarSancion(alumnoId: string, profesorId: string, tipo: TipoSancion, descripcion: string): Promise<void> {
-        // TODO: Implementar lógica de inserción asíncrona.
-        throw new Error('Método no implementado');
+    public async registrarAsistencia(
+        alumnoId: string,
+        profesorId: string,
+        franja: FranjaHoraria,
+        estado: EstadoAsistencia
+    ): Promise<boolean> {
+
+        await this.simularRed();
+
+        const asistencia: Asistencia = {
+            id: crypto.randomUUID(),
+            alumnoId,
+            profesorId,
+            fecha: new Date()
+                .toISOString()
+                .split('T')[0],
+            franja,
+            estado
+        };
+
+        this.asistenciaStorage.add(asistencia);
+
+        return true;
     }
 
     /**
-     * VERIFICACIÓN CRÍTICA: Comprueba si un profesor ya tiene una clase asignada en el mismo día y hora.
-     * Devuelve true si hay conflicto (el profesor está duplicado) o false si está libre.
+     * Registra una sanción.
      */
-    public async comprobarConflictoProfesor(profesorId: string, dia: string, franja: string): Promise<boolean> {
-        // TODO: Recuperar los horarios y utilizar métodos de array (.some, .filter, etc.) 
-        // para buscar coincidencias exactas.
-        throw new Error('Método no implementado');
+    public async registrarSancion(
+        alumnoId: string,
+        profesorId: string,
+        tipo: TipoSancion,
+        descripcion: string
+    ): Promise<void> {
+
+        await this.simularRed();
+
+        const sancion: Sancion = {
+            id: crypto.randomUUID(),
+            alumnoId,
+            profesorId,
+            fecha: new Date()
+                .toISOString()
+                .split('T')[0],
+            tipo,
+            descripcion
+        };
+
+        this.sancionesStorage.add(sancion);
     }
 
     /**
-     * Genera un informe resumido con el total de faltas y retrasos de un alumno concreto.
+     * Comprueba si un profesor tiene conflicto horario.
      */
-    public async obtenerInformeAlumno(alumnoId: string): Promise<{ faltas: number; retrasos: number; sanciones: number }> {
-        // TODO: Filtrar asistencias y sanciones del alumno para devolver el objeto con los contadores.
-        throw new Error('Método no implementado');
+    public async comprobarConflictoProfesor(
+        profesorId: string,
+        dia: DiaSemana,
+        franja: FranjaHoraria
+    ): Promise<boolean> {
+
+        await this.simularRed();
+
+        const horarios: RegistroHorario[] =
+            this.horariosStorage.getAll();
+
+        return horarios.some(
+            (horario: RegistroHorario) =>
+                horario.profesorId === profesorId &&
+                horario.dia === dia &&
+                horario.franja === franja
+        );
+    }
+
+    /**
+     * Genera el informe de un alumno.
+     */
+    public async obtenerInformeAlumno(
+        alumnoId: string
+    ): Promise<{
+        faltas: number;
+        retrasos: number;
+        sanciones: number;
+    }> {
+
+        await this.simularRed();
+
+        const asistencias: Asistencia[] =
+            this.asistenciaStorage.getAll();
+
+        const sanciones: Sancion[] =
+            this.sancionesStorage.getAll();
+
+        const faltas: number =
+            asistencias.filter(
+                (asistencia: Asistencia) =>
+                    asistencia.alumnoId === alumnoId &&
+                    asistencia.estado === 'falta'
+            ).length;
+
+        const retrasos: number =
+            asistencias.filter(
+                (asistencia: Asistencia) =>
+                    asistencia.alumnoId === alumnoId &&
+                    asistencia.estado === 'retraso'
+            ).length;
+
+        const totalSanciones: number =
+            sanciones.filter(
+                (sancion: Sancion) =>
+                    sancion.alumnoId === alumnoId
+            ).length;
+
+        return {
+            faltas,
+            retrasos,
+            sanciones: totalSanciones
+        };
     }
 }
