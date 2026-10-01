@@ -1,26 +1,21 @@
-import {CRMController} from './controllers/crm.controller';
+import { CRMController } from './controllers/crm.controller';
 
-// Instanciamos el motor (creamos el objeto en memoria)
-const miEscuelaCRM = new CRMController("1.0.0");
+const crm = new CRMController();
 
-
- async function addUsuario() {
-    console.log("Agregando un nuevo usuario...");
-    let guardaConExito =  false;
-    guardaConExito = await miEscuelaCRM.registrarUsuarioAsync({ id: 4, nombre: "Ana Torres", rol: "alumno", activo: true });
-    if (guardaConExito) {
-        console.log("Usuario agregado con éxito.");
-    } else {
-        console.log("Error al agregar el usuario.");
+async function ejecutarPrueba() {
+    console.log("=== Iniciando simulación de SchoolCRM ===");
+    
+    try {
+        // Aquí el alumno añadirá llamadas de prueba para demostrar 
+        // que sus métodos asíncronos y validaciones funcionan por consola.
+        
+        // Ejemplo de flujo esperado:
+        // const conflicto = await crm.comprobarConflictoProfesor('prof1', 'Lunes', '1ª Hora');
+        // console.log(`¿Hay conflicto horario?: ${conflicto}`);
+        
+    } catch (error) {
+        console.error("Error en la ejecución:", error);
     }
 }
 
-addUsuario();
-
-console.log("Versión del CRM:", miEscuelaCRM.verVersion());
-// Usamos sus métodos
-const profesores = miEscuelaCRM.filtrarUsuariosPorRol("profesor");
-
-
-console.log("Profesores del centro:", profesores);
-
+ejecutarPrueba();
